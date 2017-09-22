@@ -1,0 +1,69 @@
+{
+  "name": "chess_online",
+  "version": "1.0.0",
+  "description": "== README",
+  "main": "index.html",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "nodemon --exec babel-node app.js",
+    "test": "nodemon --exec babel-node --inspect app.js",
+    "dev": "webpack -wd"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.1.4",
+    "axios": "^0.15.0",
+    "bcryptjs": "*",
+    "body-parser": "^1.15.2",
+    "connect-flash": "*",
+    "cookie-parser": "^1.4.1",
+    "express": "^4.14.0",
+    "express-messages": "*",
+    "express-session": "*",
+    "express-validator": "*",
+    "ejs": "^2.5.2",
+    "es6-promise": "^4.0.5",
+    "babel-core": "^6.10.4",
+    "babel-loader": "^6.2.4",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-react": "^6.11.1",
+    "http-server": "^0.9.0",
+    "jquery": "^3.1.0",
+    "webpack": "^1.13.1",
+    "lodash": "^4.15.0",
+    "mongodb": "^2.2.10",
+    "mongoose": "*",
+    "node-sass-middleware": "^0.9.8"
+  },
+   "devDependencies": {
+    "babel-cli": "^6.16.0",
+    "babel-eslint": "^7.0.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-es2015": "^6.16.0",
+    "babel-preset-react": "^6.16.0",
+    "babel-preset-stage-2": "^6.17.0",
+    "compression-webpack-plugin": "^0.4.0",
+    "eslint": "^3.7.1",
+    "eslint-plugin-react": "^6.4.0",
+    "nodemon": "^1.11.0",
+    "webpack": "^1.13.2"
+  },
+  "babel": {
+    "env": {
+      "production": {
+        "plugins": [
+          "transform-react-constant-elements",
+          "transform-react-inline-elements"
+        ]
+      }
+    }
+  },
+  "engines": {
+    "node": "6.2.2",
+    "npm": "3.9.5"
+  }
+}
