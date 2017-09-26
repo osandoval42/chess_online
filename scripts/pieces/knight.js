@@ -1,8 +1,10 @@
 const ChessUnicode = require('../constants/pieces_unicode');
 const Colors = require('../constants/colors');
 const Deltas = require('../constants/deltas');
+const Piece = require('./piece')
 
 const Knight = function(color, pos, board){
+  Piece.call(this);
   this.color = color;
   this.pos = pos;
   this.board = board;
@@ -19,6 +21,13 @@ const Knight = function(color, pos, board){
   ]
 
 };
+
+Knight.prototype = Object.create(Piece.prototype);
+Knight.prototype.constructor = Knight
+
+Knight.prototype.toString = function(){
+  return `\"${this.colorString()}N\"`
+}
 
 Knight.prototype.moves = Deltas.steppingMoves;
 

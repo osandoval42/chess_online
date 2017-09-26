@@ -12,7 +12,7 @@ const View = function(mainEl){
   this.createTimeQuestion()
   this.createClockDisplays()
   this.chessBoardDisplay = mainEl.querySelector('.chess-board');
-  this.board = new Board();
+  this.board = Board.initializeBoard();
   this.setUp()
   this.toMove = Colors.WHITE;
   this.startPos = null;

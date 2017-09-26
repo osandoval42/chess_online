@@ -5,29 +5,98 @@ const Rook = require('./pieces/rook');
 const Pawn = require('./pieces/pawn');
 const King = require('./pieces/king');
 const Queen = require('./pieces/queen');
+const Piece = require('./pieces/piece');
 const COLORS = require('./constants/colors');
 const MoveResults = require('./constants/move_results');
 const HelperMethods = require('./constants/helper_methods');
 
 const Board = function(){
-  this.grid = new Array(8);
+
+};
+
+Board.initializeBoard = function(){
+  let freshBoard = new Board();
+  freshBoard.grid = new Array(8);
 
   for (let rowIdx = 0; rowIdx < 8; rowIdx++){
-    this.grid[rowIdx] = new Array(8);
+    freshBoard.grid[rowIdx] = new Array(8);
     for (let colIdx = 0; colIdx < 8; colIdx++){
-      this.grid[rowIdx][colIdx] = new NullPiece({row: rowIdx, col:colIdx});
+      freshBoard.grid[rowIdx][colIdx] = new NullPiece({row: rowIdx, col:colIdx});
     }
   }
 
-  this.whitePawns = [];
-  this.blackPawns = [];
-  placePawns.call(this, COLORS.BLACK, 1);
-  placePawns.call(this, COLORS.WHITE, 6);
+  freshBoard.whitePawns = [];
+  freshBoard.blackPawns = [];
+  placePawns.call(freshBoard, COLORS.BLACK, 1);
+  placePawns.call(freshBoard, COLORS.WHITE, 6);
 
-  placeMajors.call(this, COLORS.BLACK, 0);
-  placeMajors.call(this, COLORS.WHITE, 7);
+  placeMajors.call(freshBoard, COLORS.BLACK, 0);
+  placeMajors.call(freshBoard, COLORS.WHITE, 7);
 
-};
+  //DElETE
+  // let json = freshBoard.toJson();
+  // console.log(json)
+  // console.log('now for the piece check')
+  // let boardTest = Board.jsonToBoard(json);
+  // json = boardTest.toJson();
+  // console.log('now for the piece check')
+  // console.log(json);
+
+  return freshBoard;
+  // return boardTest;
+}
+
+Board.prototype.toJson = function(){
+  let json = "[";
+
+  this.grid.forEach((row, rowIdx) => {
+    json += "[";
+
+    row.forEach((piece, i) => {
+      json += piece.toString();
+      json += (i === row.length - 1) ? ']' : ', '
+    })
+    if (rowIdx < this.grid.length - 1){
+      json += ', ';
+    }
+  })
+
+  json += ']';
+  return json;
+}
+
+Board.jsonToBoard = function(jsonBoard){
+  let restoredBoard = new Board();
+  restoredBoard.grid = [];
+  let jsonObj = JSON.parse(jsonBoard);
+  jsonObj.forEach((jsonRow, rowIdx) => {
+    restoredBoard.grid.push([]);
+    jsonRow.forEach((pieceString, colIdx) => {
+      restoredBoard.grid[rowIdx].push(this.stringToPiece(pieceString, {row: rowIdx, col: colIdx}, restoredBoard));
+    })
+  })
+  return restoredBoard;
+}
+
+Board.stringToPiece = function(str, pos, board){
+  let colorLetter = str[0];
+  let color;
+  if (colorLetter === " "){
+    return new NullPiece(pos)
+  } else {
+    color = colorLetter === "B" ? COLORS.BLACK : COLORS.WHITE;
+  }
+  let pieceLetter = str[1];
+  switch (pieceLetter){
+    case "Q": return new Queen(color, pos, board);
+    case "N": return new Knight(color, pos, board);
+    case "K": return new King(color, pos, board);
+    case "B": return new Bishop(color, pos, board);
+    case "P": return new Pawn(color, pos, board);
+    case "R": return new Rook(color, pos, board);
+    default: throw `invalid piece str with ${str}`;
+  }
+}
 
 Board.prototype.flattenedGrid = function(){
   return Array.prototype.concat.apply([], this.grid);

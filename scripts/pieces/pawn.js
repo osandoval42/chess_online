@@ -1,7 +1,9 @@
 const ChessUnicode = require('../constants/pieces_unicode');
 const Colors = require('../constants/colors');
+const Piece = require('./piece');
 
 const Pawn = function(color, pos, board){
+  Piece.call(this);
   this.color = color;
   this.enpassantOption = null;
   this.pos = pos;
@@ -30,6 +32,12 @@ const Pawn = function(color, pos, board){
   }
   setUnicode.call(this);
 };
+Pawn.prototype = Object.create(Piece.prototype);
+Pawn.prototype.constructor = Pawn
+
+Pawn.prototype.toString = function(){
+  return `\"${this.colorString()}P\"`
+}
 
 Pawn.prototype.moves = function(){
   let moves = [];
