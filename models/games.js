@@ -35,6 +35,8 @@ const GameSchema = mongoose.Schema({ //REVISE img data
 	}
 }, {timestamps: true})
 
+const Game = mongoose.model('Game', GameSchema);
+
 /*
 	grab currTime
 	grab game with gameId, verify playerId is person to move.
@@ -109,4 +111,4 @@ Game.postMove = function(gameId, playerId, cb){
 	})
 }
 
-const Game = module.exports = mongoose.model('Game', GameSchema);
+module.exports = Game;

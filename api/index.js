@@ -1,6 +1,5 @@
 import express from 'express';
 import es6Promise from 'es6-promise';
-mongoose.Promise = es6Promise.Promise;
 import Game from '../models/games';
 
 let router = express.Router();

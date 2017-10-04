@@ -37,7 +37,11 @@
     "lodash": "^4.15.0",
     "mongodb": "^2.2.10",
     "mongoose": "*",
-    "node-sass-middleware": "^0.9.8"
+    "node-sass-middleware": "^0.9.8",
+    "react-router": "^2.5.1",
+     "react-dom": "^15.1.0",
+    "react-modal": "^1.3.0"
+
   },
    "devDependencies": {
     "babel-cli": "^6.16.0",
