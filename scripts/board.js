@@ -10,11 +10,26 @@ const COLORS = require('./constants/colors');
 const MoveResults = require('./constants/move_results');
 const HelperMethods = require('./constants/helper_methods');
 
+const ongoingGameStore = require('./stores/ongoing_game_store');
+
 const Board = function(){
 
 };
 
 Board.initializeBoard = function(){
+  //toMove is in view
+  let gameData = ongoingGameStore.gameData()
+  let currBoard;
+  if (gameData.boardJSON === undefined){
+    currBoard = Board.initializeFreshBoard()
+    ongoingGameStore.addBoard(currBoard.toJson());
+  } else {
+    currBoard = Board.jsonToBoard(gameData.boardJSON);
+  }
+  return currBoard;
+}
+
+Board.initializeFreshBoard = function(){
   let freshBoard = new Board();
   freshBoard.grid = new Array(8);
 
@@ -67,12 +82,19 @@ Board.prototype.toJson = function(){
 
 Board.jsonToBoard = function(jsonBoard){
   let restoredBoard = new Board();
+  restoredBoard.whitePawns = [];
+  restoredBoard.blackPawns = [];
   restoredBoard.grid = [];
   let jsonObj = JSON.parse(jsonBoard);
   jsonObj.forEach((jsonRow, rowIdx) => {
     restoredBoard.grid.push([]);
     jsonRow.forEach((pieceString, colIdx) => {
-      restoredBoard.grid[rowIdx].push(this.stringToPiece(pieceString, {row: rowIdx, col: colIdx}, restoredBoard));
+      let piece = this.stringToPiece(pieceString, {row: rowIdx, col: colIdx}, restoredBoard);
+      restoredBoard.grid[rowIdx].push(piece);
+      if (piece.constructor === Pawn){
+        let pawnsArr = piece.color === COLORS.WHITE ? restoredBoard.whitePawns : restoredBoard.blackPawns;
+        pawnsArr.push(piece);
+      }
     })
   })
   return restoredBoard;

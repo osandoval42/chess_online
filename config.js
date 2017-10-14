@@ -10,6 +10,8 @@ var expressValidator = require('express-validator');
 var express = require('express');
 var path = require('path');
 
+
+
 // var session = require('express-session');
 
 // REVISE DELETE
@@ -28,7 +30,7 @@ export const logStars = function(message) {
 };
 const DATABASEUrl = 'mongodb://localhost/chess_online'
 export default {
-  port: env.PORT || 8080,
+  port: env.PORT || 3000,
   host: env.HOST || '0.0.0.0',
   get serverUrl() {
     return `http://${this.host}:${this.port}`;
@@ -110,5 +112,10 @@ export default {
 		server.get('/*', (req, res) => {
 			res.render('index', {});
   		});
+
+//   		server.get('/', function(req, res){
+//   res.render('index', {});
+// });
+		
 	}
 };

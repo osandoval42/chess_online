@@ -1,6 +1,8 @@
 var mongoose = require('mongoose');
 import es6Promise from 'es6-promise';
 mongoose.Promise = es6Promise.Promise;
+const Board = require('../scripts/board');
+const MoveResults = require('../scripts/constants/move_results');
 
 
 const GameSchema = mongoose.Schema({ //REVISE img data
@@ -10,6 +12,9 @@ const GameSchema = mongoose.Schema({ //REVISE img data
 	},
 	gameIsOver: {
 		type: Boolean
+	},
+	won: {
+		type: String
 	},
 	gameHasStarted: {
 		type: Boolean
@@ -50,34 +55,78 @@ const Game = mongoose.model('Game', GameSchema);
 		}
 	}
 */	
-Game.postMove = function(gameId, playerId, cb){
+Game.getNewBoard = function(origBoardJSON, newMoveData){
+	//how to ensure good move data
+	let board = Board.jsonToBoard(origBoardJSON);
+	let moveResult = board.move(newMoveData.startPos, newMoveData.endPos);
+	while (true){
+		if (moveResult === MoveResults.SUCCESS){
+			return board;
+		} else if (moveResult === MoveResults.CHECKMATE){
+			return {boardJSON: board.toJson(), checkmate: true}
+		} else if (moveResult !== MoveResults.FAILURE){
+			moveResult = this.board.makePromotion(moveResult, chosenPiece);
+		} else {
+			return undefined;
+		}
+	}
+}
+
+Game.numberfyPosition = function(pos){
+	pos.row = Number(pos.row);
+	pos.col = Number(pos.col);
+}
+
+
+Game.postMove = function(playerId, data, cb){
+	Game.numberfyPosition(data.startPos);
+	Game.numberfyPosition(data.endPos);
+	
 	let currDateInSeconds = new Date().getTime() / 1000;
-	Game.findById(mongoose.Types.ObjectId(gameId), (err, currGame) => {
-		if (err){return cb("Invalid Game ID")}
-		if (playerId !== currGame.toMove){return cb("Invalid Player To Move ID");}
-		//make board into obj LEFT OFF
-		//check if move is valid, if so make move else dont
+	Game.findById(mongoose.Types.ObjectId(data.gameId), (err, currGame) => {
+		if (err || currGame === undefined){return cb("Invalid Game ID")}
+		let playerToMoveId = currGame.toMove === "white" ? currGame.white : currGame.black;
+		if (playerId !== playerToMoveId){return cb("Invalid Player To Move ID");}
+
 
 		let timeMoveWasGranted = (currGame.updatedAt || currGame.createdAt).getTime() / 1000;
 		let secondsTakenToMove = currDateInSeconds - timeMoveWasGranted;
 		let playerJustMovedSecondsLeft = currGame.playerToMoveSecondsLeft - secondsTakenToMove;
 
 		if (playerJustMovedSecondsLeft > 0){
+			let boardObj = Game.getNewBoard(currGame.board, data);
+			
+
+			if (boardObj === undefined){
+				return cb("Invalid Move");
+			} else if (boardObj.checkmate === true){
+				currGame.board = boardObj.boardJSON;
+				currGame.won = currGame.toMove;
+				currGame.gameIsOver = true;
+				currGame.save((err, savedGame) => {
+					if (err){console.error(err); return cb(err);}
+						let boardJSON = savedGame.board;
+						let gameIsOver = savedGame.gameIsOver;
+						let won = savedGame.won
+						return cb(false, {boardJSON, gameIsOver, won})				
+					})
+			}
+			currGame.board = boardObj.toJson();
+
 			currGame.playerToMoveSecondsLeft = currGame.playerNotToMoveSecondsLeft;
 			currGame.playerNotToMoveSecondsLeft = playerJustMovedSecondsLeft;			
-			currGame.board = boardObj.toJson();
 
 			let toMove;
 			let whiteSecondsLeft;
 			let blackSecondsLeft;
-			if (currGame.toMove === currGame.white){
-				currGame.toMove = currGame.black;
-				toMove = "BLACK"; //REVISE dont hardcode
+			if (currGame.toMove === "white"){
+				currGame.toMove = "black";
+				toMove = "black"; //REVISE dont hardcode
 				blackSecondsLeft = currGame.playerToMoveSecondsLeft;
 				whiteSecondsLeft = currGame.playerNotToMoveSecondsLeft;
 			} else {
 				currGame.toMove = currGame.white;
-				toMove = "WHITE";
+				toMove = "white";
 				whiteSecondsLeft = currGame.playerToMoveSecondsLeft;
 				blackSecondsLeft = currGame.playerNotToMoveSecondsLeft;
 			}
@@ -86,7 +135,7 @@ Game.postMove = function(gameId, playerId, cb){
 				let boardJSON = savedGame.board;
 				let gameIsOver = savedGame.gameIsOver;
 				let gameHasStarted = savedGame.gameHasStarted;
-				return cb(false, {boardJSON, playerId, toMove, gameIsOver, gameHasStarted, whiteSecondsLeft, blackSecondsLeft})				
+				return cb(false, {boardJSON, toMove, gameIsOver, gameHasStarted, whiteSecondsLeft, blackSecondsLeft})				
 			})
 		} else {
 			currGame.gameIsOver = true;
@@ -108,6 +157,35 @@ Game.postMove = function(gameId, playerId, cb){
 				return cb(false, {gameIsOver, whiteSecondsLeft, blackSecondsLeft});
 			})
 		}
+	})
+}
+
+
+Game.createGame = function(playerId, cb, seconds = 900){
+	const newGame = new Game({
+		gameIsOver: false,
+		gameHasStarted: false,
+		toMove: "white",
+		playerToMoveSecondsLeft: seconds,
+		playerNotToMoveSecondsLeft: seconds,
+		board: Board.initializeBoard().toJson()
+	})
+	let playerColor;
+	if (Math.random() >= .5){
+		newGame.white = playerId
+		playerColor = "white";
+	} else{
+		newGame.black = playerId
+		playerColor = "black";
+	}
+	newGame.save((err, savedGame) => {
+		if (err) {return cb(err);}
+		let json = {
+			gameHasStarted: savedGame.gameHasStarted,
+			playerColor,
+			gameId: savedGame._id
+		};
+		cb(false, json)
 	})
 }
 

@@ -4,6 +4,15 @@ const MoveResults = require('./constants/move_results');
 const Unicode = require('./constants/pieces_unicode');
 const Clock = require('./clock');
 
+const api = require("./api_calls/api");
+
+const ongoingGameStore = require('./stores/ongoing_game_store');
+
+
+import {browserHistory} from 'react-router';
+
+
+
 const View = function(mainEl){
   this.mainEl = mainEl;
   this.createWinMessage()
@@ -14,10 +23,9 @@ const View = function(mainEl){
   this.chessBoardDisplay = mainEl.querySelector('.chess-board');
   this.board = Board.initializeBoard();
   this.setUp()
-  this.toMove = Colors.WHITE;
+  this.toMove = Colors.WHITE; //how to update to move and only allow moves on that
   this.startPos = null;
   this.squareClickDisabled = true;
-
 };
 
 
@@ -117,7 +125,8 @@ View.prototype.switchClockRunning = function(){
       this.chessBoardDisplay.appendChild(square);
     }
   }
-
+  this.chessBoardDisplay.className = ongoingGameStore.gameData().playerColor === "black" ?
+  "chess-board black-to-move" : "chess-board"
   this.render();
 };
 
@@ -146,9 +155,11 @@ View.prototype.squareClick = function(pos){
         return this.demandPawnPromotion(moveResult);
       }
       if (moveResult === MoveResults.SUCCESS){
+        this.postMoveToBackend(pos);
         this.renderMoveResult();
       }
       if (moveResult === MoveResults.CHECKMATE){
+        this.postMoveToBackend(pos);
         this.renderMoveResult()
         this.renderWon();
       }
@@ -156,13 +167,16 @@ View.prototype.squareClick = function(pos){
     }
   }
 };
+//how to let user know they are disconnectec
+
+//how to have backend clock determine winner, never front end clock
 
 View.prototype.renderMoveResult = function(){
   this.switchClockRunning();
   this.unselectPiece();
   this.render();
   this.changeToMove();
-  this.flipBoard()
+  // this.flipBoard()
   this.flipClocks()
 }
 
@@ -177,8 +191,19 @@ View.prototype.demandPawnPromotion = function(pos){
   this.pawnConversionTab.style.display = 'flex';
 }
 
+View.prototype.postMoveToBackend = function(endPos, promotionPiece){
+  api.makeMove({
+    startPos: this.startPos,
+    endPos: endPos,
+    gameId: ongoingGameStore.gameData().gameId,
+    promotionPiece
+  });
+}
+
 View.prototype.makePromotion = function(pos, chosenPiece){
   const moveResult = this.board.makePromotion(pos, chosenPiece);
+  this.postMoveToBackend(pos, chosenPiece);
+
   this.pawnConversionTab.style.display = 'none';
   this.renderMoveResult();
   if (moveResult === MoveResults.CHECKMATE){
@@ -230,10 +255,10 @@ View.prototype.changeToMove = function(){
   this.toMove = this.toMove === Colors.WHITE ? Colors.BLACK : Colors.WHITE;
 }
 
-View.prototype.flipBoard = function(){
-  this.chessBoardDisplay.className = this.chessBoardDisplay.className === "chess-board" ?
-    "chess-board black-to-move" : "chess-board"
-}
+// View.prototype.flipBoard = function(){
+//   this.chessBoardDisplay.className = this.chessBoardDisplay.className === "chess-board" ?
+//     "chess-board black-to-move" : "chess-board"
+// }
 
 View.prototype.flipClocks = function(){
   this.whiteClockDisplay.className = this.whiteClockDisplay.className === "to-move-clock clock-display" ?
