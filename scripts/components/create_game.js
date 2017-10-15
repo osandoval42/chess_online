@@ -6,6 +6,8 @@ import {browserHistory} from 'react-router';
 
 const CreateGame = React.createClass({
   receiveGameStart(json){
+    console.log("received game start");
+    console.log(json);
     //{gameHasStarted: false, playerColor: "black", gameId: "59db90abfa87c508add7f9c0"}
     let payload = {actionType: "createGame", gameData: json}
 

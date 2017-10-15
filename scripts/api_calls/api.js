@@ -20,6 +20,16 @@ const gameApi = {
 	     	 }
 	    });
 	},
+	joinGame: function(gameId, success, fail) {
+		 $.ajax({
+	      url: `/api/joinGame/${gameId}`,
+	      type: 'GET',	   
+	      success,
+	      error(xhr) {
+	        console.log('error in joinGame')
+	     	 }
+	    });
+	},
 	makeMove: function(json){
 		 $.ajax({
 	      url: `/api/move`,

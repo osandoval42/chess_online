@@ -39,6 +39,17 @@ router.post('/new_game', (req, res) => {
 		}
 	})
 })
+router.get('/joinGame/:gameId', (req, res) => {
+	let playerId = getCookie(req, res);
+	let gameId = req.params.gameId
+	Game.joinGame(playerId, gameId, (error, newGameData) => {
+		if (error){
+			return res.status(401).send({"ok": false, error}); 
+		} else {
+			res.send(newGameData)
+		}
+	})
+})
 
 // let users = [];
 // let connections = [];

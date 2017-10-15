@@ -13,7 +13,7 @@ const URLMatcher = (
       <Router history={browserHistory}>
         <Route path="/" component={App}>
           <IndexRoute component={CreateGame} />
-          <Route path="game/:gameID" component={Game}/>
+          <Route path="game/:gameId" component={Game}/>
         </Route>
       </Router>
 );

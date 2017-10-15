@@ -30,12 +30,18 @@ config.configViewEngine(app);
 var http = require('http').Server(app);
 var io = require('socket.io')(http); 
 config.setupRoutes(app);
-io.on('connection', function(socket){
-  console.log('a user connected');
-});
+// io.on('connection', function(socket){
+//   console.log('a user connected');
+//   socket.on('disconnect', function(){
+//     console.log('user disconnected');
+//   });
+// });
 http.listen(3000, function(){
   console.log('Express listening on port', config.port);
 });
+
+const GameModel =  require('./models/games');
+GameModel.passIO(io);
 
 // server.listen(config.port, config.host, () => {
 //   console.info('Express listening on port', config.port);

@@ -17,16 +17,20 @@ const View = function(mainEl){
   this.mainEl = mainEl;
   this.createWinMessage()
   this.createPawnConversionTab()
-
   this.createTimeQuestion()
   this.createClockDisplays()
   this.chessBoardDisplay = mainEl.querySelector('.chess-board');
-  this.board = Board.initializeBoard();
+
+  this.syncBoardToGameState();
   this.setUp()
-  this.toMove = Colors.WHITE; //how to update to move and only allow moves on that
-  this.startPos = null;
-  this.squareClickDisabled = true;
+  this.squareClickDisabled = true //how to disattach this from being dependent on clock setup
 };
+
+View.prototype.syncBoardToGameState = function(){
+  this.board = Board.initializeBoard();
+  this.toMove = ongoingGameStore.gameData().toMove;
+  this.startPos = null;
+}
 
 
  View.prototype.createClockDisplays = function(){
@@ -136,10 +140,11 @@ View.prototype.render = function(){
 
 View.prototype.squareClick = function(pos){
   if (this.squareClickDisabled === true){
+    console.log("square clicked cant because is disabled")
     return;
   }
 
-  if (this.startPos === null){
+  if (this.startPos === null){    
     return this.selectPiece(pos);
   }
   else{
@@ -216,6 +221,7 @@ View.prototype.makePromotion = function(pos, chosenPiece){
 View.prototype.selectPiece = function(pos){
   let piece = this.board.getPiece(pos)
   if (piece.color !== this.toMove){
+    console.log(`invalid select with piece.color:${piece.color} and toMove:${this.toMove}`);
     return 'invalid selection'
   }
   else{

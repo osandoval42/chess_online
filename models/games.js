@@ -3,6 +3,7 @@ import es6Promise from 'es6-promise';
 mongoose.Promise = es6Promise.Promise;
 const Board = require('../scripts/board');
 const MoveResults = require('../scripts/constants/move_results');
+let io;
 
 
 const GameSchema = mongoose.Schema({ //REVISE img data
@@ -108,6 +109,7 @@ Game.postMove = function(playerId, data, cb){
 						let boardJSON = savedGame.board;
 						let gameIsOver = savedGame.gameIsOver;
 						let won = savedGame.won
+						Game.emitNewGameState(savedGame)
 						return cb(false, {boardJSON, gameIsOver, won})				
 					})
 			}
@@ -135,6 +137,7 @@ Game.postMove = function(playerId, data, cb){
 				let boardJSON = savedGame.board;
 				let gameIsOver = savedGame.gameIsOver;
 				let gameHasStarted = savedGame.gameHasStarted;
+				Game.emitNewGameState(savedGame)
 				return cb(false, {boardJSON, toMove, gameIsOver, gameHasStarted, whiteSecondsLeft, blackSecondsLeft})				
 			})
 		} else {
@@ -153,7 +156,7 @@ Game.postMove = function(playerId, data, cb){
 					blackSecondsLeft = 0;
 					whiteSecondsLeft = savedGame.playerNotToMoveSecondsLeft;
 				}
-
+				Game.emitNewGameState(savedGame)
 				return cb(false, {gameIsOver, whiteSecondsLeft, blackSecondsLeft});
 			})
 		}
@@ -180,13 +183,88 @@ Game.createGame = function(playerId, cb, seconds = 900){
 	}
 	newGame.save((err, savedGame) => {
 		if (err) {return cb(err);}
-		let json = {
-			gameHasStarted: savedGame.gameHasStarted,
-			playerColor,
-			gameId: savedGame._id
-		};
-		cb(false, json)
+		let group = io.of(`/game-${savedGame['_id']}`)
+		group.on('connection', function(socket){
+  			console.log(`a user created group ${savedGame['_id']}`);
+  		})
+
+		Game.returnGameData(cb, savedGame, playerId);
 	})
 }
+
+Game.joinGame = function(playerId, gameId, cb){
+	Game.findById(mongoose.Types.ObjectId(gameId), (err, currGame) => {
+		if (err || currGame === undefined){return cb("Invalid Game ID")}
+		if (currGame.gameHasStarted === false){
+			currGame.gameHasStarted = true;
+			if (currGame.white === undefined){
+				currGame.white = playerId
+			} else {
+				currGame.black = playerId;
+			}
+			currGame.save((err, savedGame) => {
+				if (err || currGame === undefined){return cb("game failed to save")}
+				Game.emitNewGameState(savedGame);
+				Game.returnGameData(cb, currGame, playerId)
+			})
+		} else {
+			if (currGame.black !== playerId && currGame.white !== playerId){
+				return cb("you are not a player for this game")
+			} else {
+				Game.emitNewGameState(savedGame);
+				return Game.returnGameData(cb, currGame, playerId);			
+			}
+		}
+	})
+}
+
+Game.getGameJson = function(currGame, playerId){
+	let whiteSecondsLeft;
+	let blackSecondsLeft;
+	if (currGame.toMove === "black"){
+		blackSecondsLeft = currGame.playerToMoveSecondsLeft;
+		whiteSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+	} else {
+		whiteSecondsLeft = currGame.playerToMoveSecondsLeft;
+		blackSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+	}	
+	let json = {
+		gameId: currGame._id,
+		boardJSON: currGame.board,
+		toMove: currGame.toMove,
+		gameIsOver: currGame.gameIsOver,
+		gameHasStarted: currGame.gameHasStarted,
+		whiteSecondsLeft,
+		blackSecondsLeft,
+		won: currGame.won,
+		playerColor: (currGame.white === playerId ? ("white") : ("black"))
+	}
+	return json
+}
+
+Game.emitNewGameState = function(savedGame){
+	let group = io.of(`/game-${savedGame['_id']}`)
+	console.log(`server group /game-${savedGame['_id']}`)
+ 	group.emit('new game state received', Game.getGameJson(savedGame));
+}
+
+Game.returnGameData = function(cb, currGame, playerId){
+	let json = Game.getGameJson(currGame, playerId);
+	cb(undefined, json);
+}
+
+
+
+Game.passIO = function(ioParam){
+	io = ioParam;
+	io.on('connection', function(socket){
+  console.log('a user connected');
+  socket.on('disconnect', function(){
+    console.log('user disconnected');
+  });
+});
+}
+
+
 
 module.exports = Game;

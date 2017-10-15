@@ -1,6 +1,6 @@
 const COLORS = {
-  BLACK: 'BLACK',
-  WHITE: 'WHITE'
+  BLACK: 'black',
+  WHITE: 'white'
 };
 
 module.exports = COLORS;
