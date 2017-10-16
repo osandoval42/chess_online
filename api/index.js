@@ -31,7 +31,7 @@ router.post('/move', (req, res) => {
 router.post('/new_game', (req, res) => {
 	let playerId = getCookie(req, res);
 
-	Game.createGame(playerId, (error, newGameData) => {
+	Game.createGame(playerId, req.body.minutes, (error, newGameData) => {
 		if (error){
 			return res.status(401).send({"ok": false, error}); 
 		} else {

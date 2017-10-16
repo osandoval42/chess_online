@@ -1,5 +1,6 @@
-const Clock = function(minutes, renderWon, clockDisplay){ //need 15:00 to render.  try to do this in her
-  this.seconds = minutes * 60;
+const Clock = function(milliseconds, renderWon, clockDisplay){ //need 15:00 to render.  try to do this in her
+  console.log(`milliseconds passed in ${milliseconds}`);
+  this.milliseconds =  milliseconds;
   this.renderWon = renderWon;
   this.isRunning = false;
   this.clockDisplay = clockDisplay;
@@ -10,10 +11,10 @@ const Clock = function(minutes, renderWon, clockDisplay){ //need 15:00 to render
 Clock.prototype.start = function () {
   this.isRunning = true;
   this.intervalId = setInterval(() => {
-    this.seconds--;
+    this.milliseconds -= 100;
     this.checkForExpiration();
     this.renderDisplay();
-  }, 1000)
+  }, 100)
 };
 
 Clock.prototype.toggleRunning = function(){
@@ -25,14 +26,15 @@ Clock.prototype.toggleRunning = function(){
   }
 }
 
-Clock.prototype.stop= function() {
+Clock.prototype.stop = function() {
   this.isRunning = false;
   clearInterval(this.intervalId)
 };
 
 Clock.prototype.renderDisplay = function(){
-  let minutes = Math.floor(this.seconds / 60)
-  let seconds = this.seconds % 60;
+  let totalSeconds = Math.ceil(this.milliseconds / 1000)
+  let minutes = Math.floor(totalSeconds / 60)
+  let seconds = totalSeconds % 60;
 
   let minutesString = minutes > 0 ? `${minutes}` : `${0}`
   let secondsString = seconds > 9 ? `${seconds}` : `0${seconds}`
@@ -42,7 +44,7 @@ Clock.prototype.renderDisplay = function(){
 }
 
 Clock.prototype.checkForExpiration = function(){
-  if (this.seconds <= 0){
+  if (this.milliseconds <= 0){
     this.stop();
     this.renderWon();
   }

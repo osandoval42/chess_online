@@ -9,11 +9,12 @@ function receiveGameData(resp){
 }
 
 const gameApi = {
-	startGame: function(success, fail) {
+	startGame: function(json, success, fail) {
 		 $.ajax({
 	      url: `/api/new_game`,
 	      type: 'POST',
-	      dataType: 'json',	     
+	      dataType: 'json',
+	      data: json,	     
 	      success,
 	      error(xhr) {
 	        console.log('error in startGame')

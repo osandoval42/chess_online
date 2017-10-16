@@ -30,10 +30,10 @@ const GameSchema = mongoose.Schema({ //REVISE img data
 	white: {
 		type: String
 	},
-	playerToMoveSecondsLeft: {
+	playerToMoveMilliSecondsLeft: {
 		type: Number
 	},
-	playerNotToMoveSecondsLeft: {
+	playerNotToMoveMilliSecondsLeft: {
 		type: Number
 	},
 	board: {
@@ -80,57 +80,61 @@ Game.numberfyPosition = function(pos){
 
 
 Game.postMove = function(playerId, data, cb){
+	console.log(`server hit with data ${JSON.stringify(data)}`);
+
 	Game.numberfyPosition(data.startPos);
 	Game.numberfyPosition(data.endPos);
 	
-	let currDateInSeconds = new Date().getTime() / 1000;
+	let currDateInMilliSeconds = new Date().getTime();
 	Game.findById(mongoose.Types.ObjectId(data.gameId), (err, currGame) => {
-		if (err || currGame === undefined){return cb("Invalid Game ID")}
+		if (err || currGame === undefined || currGame === null){return cb("Invalid Game ID")}
 		let playerToMoveId = currGame.toMove === "white" ? currGame.white : currGame.black;
 		if (playerId !== playerToMoveId){return cb("Invalid Player To Move ID");}
 
 
-		let timeMoveWasGranted = (currGame.updatedAt || currGame.createdAt).getTime() / 1000;
-		let secondsTakenToMove = currDateInSeconds - timeMoveWasGranted;
-		let playerJustMovedSecondsLeft = currGame.playerToMoveSecondsLeft - secondsTakenToMove;
+		let timeMoveWasGranted = (currGame.updatedAt).getTime();
+		let milliSecondsTakenToMove = currDateInMilliSeconds - timeMoveWasGranted;
+		let playerJustMovedMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft - milliSecondsTakenToMove;
 
-		if (playerJustMovedSecondsLeft > 0){
+		if (playerJustMovedMilliSecondsLeft > 0){
 			let boardObj = Game.getNewBoard(currGame.board, data);
 			
 
 			if (boardObj === undefined){
 				return cb("Invalid Move");
 			} else if (boardObj.checkmate === true){
+				console.log("checkmate was made on server")
 				currGame.board = boardObj.boardJSON;
 				currGame.won = currGame.toMove;
 				currGame.gameIsOver = true;
-				currGame.save((err, savedGame) => {
-					if (err){console.error(err); return cb(err);}
+				return currGame.save((err, savedGame) => {
+					if (err || savedGame === null || savedGame === undefined){console.error(err); return cb(err);}
 						let boardJSON = savedGame.board;
 						let gameIsOver = savedGame.gameIsOver;
 						let won = savedGame.won
+						console.log("XYZ")
 						Game.emitNewGameState(savedGame)
 						return cb(false, {boardJSON, gameIsOver, won})				
 					})
 			}
 			currGame.board = boardObj.toJson();
 
-			currGame.playerToMoveSecondsLeft = currGame.playerNotToMoveSecondsLeft;
-			currGame.playerNotToMoveSecondsLeft = playerJustMovedSecondsLeft;			
+			currGame.playerToMoveMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
+			currGame.playerNotToMoveMilliSecondsLeft = playerJustMovedMilliSecondsLeft;			
 
 			let toMove;
-			let whiteSecondsLeft;
-			let blackSecondsLeft;
+			let whiteMilliSecondsLeft;
+			let blackMilliSecondsLeft;
 			if (currGame.toMove === "white"){
 				currGame.toMove = "black";
 				toMove = "black"; //REVISE dont hardcode
-				blackSecondsLeft = currGame.playerToMoveSecondsLeft;
-				whiteSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+				blackMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
+				whiteMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
 			} else {
-				currGame.toMove = currGame.white;
+				currGame.toMove = "white";
 				toMove = "white";
-				whiteSecondsLeft = currGame.playerToMoveSecondsLeft;
-				blackSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+				whiteMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
+				blackMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
 			}
 			currGame.save((err, savedGame) => {
 				if (err){console.error(err); return cb(err);}
@@ -138,39 +142,40 @@ Game.postMove = function(playerId, data, cb){
 				let gameIsOver = savedGame.gameIsOver;
 				let gameHasStarted = savedGame.gameHasStarted;
 				Game.emitNewGameState(savedGame)
-				return cb(false, {boardJSON, toMove, gameIsOver, gameHasStarted, whiteSecondsLeft, blackSecondsLeft})				
+				return cb(false, {boardJSON, toMove, gameIsOver, gameHasStarted, whiteMilliSecondsLeft, blackMilliSecondsLeft})				
 			})
 		} else {
 			currGame.gameIsOver = true;
-			currGame.playerToMoveSecondsLeft = 0;
+			currGame.playerToMoveMilliSecondsLeft = 0;
 			currGame.save((err, savedGame) => {
 				if (err){console.error(err); return cb(err);}
 
-				let whiteSecondsLeft;
-				let blackSecondsLeft;
+				let whiteMilliSecondsLeft;
+				let blackMilliSecondsLeft;
 				let gameIsOver = savedGame.gameIsOver;
 				if (savedGame.toMove === savedGame.white){
-					whiteSecondsLeft = 0;
-					blackSecondsLeft = savedGame.playerNotToMoveSecondsLeft;
+					whiteMilliSecondsLeft = 0;
+					blackMilliSecondsLeft = savedGame.playerNotToMoveMilliSecondsLeft;
 				} else {
-					blackSecondsLeft = 0;
-					whiteSecondsLeft = savedGame.playerNotToMoveSecondsLeft;
+					blackMilliSecondsLeft = 0;
+					whiteMilliSecondsLeft = savedGame.playerNotToMoveMilliSecondsLeft;
 				}
 				Game.emitNewGameState(savedGame)
-				return cb(false, {gameIsOver, whiteSecondsLeft, blackSecondsLeft});
+				return cb(false, {gameIsOver, whiteMilliSecondsLeft, blackMilliSecondsLeft});
 			})
 		}
 	})
 }
 
 
-Game.createGame = function(playerId, cb, seconds = 900){
+Game.createGame = function(playerId, minutes, cb){
+	const milliseconds = minutes * 60 * 1000;
 	const newGame = new Game({
 		gameIsOver: false,
 		gameHasStarted: false,
 		toMove: "white",
-		playerToMoveSecondsLeft: seconds,
-		playerNotToMoveSecondsLeft: seconds,
+		playerToMoveMilliSecondsLeft: milliseconds,
+		playerNotToMoveMilliSecondsLeft: milliseconds,
 		board: Board.initializeBoard().toJson()
 	})
 	let playerColor;
@@ -188,14 +193,18 @@ Game.createGame = function(playerId, cb, seconds = 900){
   			console.log(`a user created group ${savedGame['_id']}`);
   		})
 
-		Game.returnGameData(cb, savedGame, playerId);
+		Game.returnGameDataWithPlayerColor(cb, savedGame, playerId);
 	})
 }
 
 Game.joinGame = function(playerId, gameId, cb){
 	Game.findById(mongoose.Types.ObjectId(gameId), (err, currGame) => {
-		if (err || currGame === undefined){return cb("Invalid Game ID")}
+		if (err || currGame === undefined || currGame === null){return cb("Invalid Game ID")}
 		if (currGame.gameHasStarted === false){
+			if (currGame.white === playerId || currGame.black === playerId){
+				return Game.returnGameDataWithPlayerColor(cb, currGame, playerId);
+			}
+
 			currGame.gameHasStarted = true;
 			if (currGame.white === undefined){
 				currGame.white = playerId
@@ -203,53 +212,64 @@ Game.joinGame = function(playerId, gameId, cb){
 				currGame.black = playerId;
 			}
 			currGame.save((err, savedGame) => {
-				if (err || currGame === undefined){return cb("game failed to save")}
+				if (err || savedGame === undefined || savedGame === null){return cb("game failed to save")}
 				Game.emitNewGameState(savedGame);
-				Game.returnGameData(cb, currGame, playerId)
+				Game.returnGameDataWithPlayerColor(cb, currGame, playerId)
 			})
 		} else {
 			if (currGame.black !== playerId && currGame.white !== playerId){
+				console.error(`invalid player id with playerId: ${playerId}, black:${currGame.black}, white:${currGame.white}`)
 				return cb("you are not a player for this game")
 			} else {
-				Game.emitNewGameState(savedGame);
-				return Game.returnGameData(cb, currGame, playerId);			
+				Game.emitNewGameState(currGame);
+				return Game.returnGameDataWithPlayerColor(cb, currGame, playerId);			
 			}
 		}
 	})
 }
 
 Game.getGameJson = function(currGame, playerId){
-	let whiteSecondsLeft;
-	let blackSecondsLeft;
+	let whiteMilliSecondsLeft;
+	let blackMilliSecondsLeft;
 	if (currGame.toMove === "black"){
-		blackSecondsLeft = currGame.playerToMoveSecondsLeft;
-		whiteSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+		blackMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
+		whiteMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
 	} else {
-		whiteSecondsLeft = currGame.playerToMoveSecondsLeft;
-		blackSecondsLeft = currGame.playerNotToMoveSecondsLeft;
+		whiteMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
+		blackMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
 	}	
+
+	let playerToMoveMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
+	if (currGame.gameHasStarted){
+		let timeElapsedSinceMoveChanged = (new Date().getTime() - (currGame.updatedAt).getTime())
+		playerToMoveMilliSecondsLeft -= timeElapsedSinceMoveChanged;
+	}
+	
 	let json = {
 		gameId: currGame._id,
 		boardJSON: currGame.board,
 		toMove: currGame.toMove,
 		gameIsOver: currGame.gameIsOver,
 		gameHasStarted: currGame.gameHasStarted,
-		whiteSecondsLeft,
-		blackSecondsLeft,
-		won: currGame.won,
-		playerColor: (currGame.white === playerId ? ("white") : ("black"))
+		playerToMoveMilliSecondsLeft,
+		playerNotToMoveMilliSecondsLeft: currGame.playerNotToMoveMilliSecondsLeft,
+		whiteMilliSecondsLeft,
+		blackMilliSecondsLeft,
+		won: currGame.won,		
 	}
+	//playerColor: (currGame.white === playerId ? ("white") : ("black"))
 	return json
 }
 
 Game.emitNewGameState = function(savedGame){
 	let group = io.of(`/game-${savedGame['_id']}`)
-	console.log(`server group /game-${savedGame['_id']}`)
+	// console.log(`server group /game-${savedGame['_id']}`)
  	group.emit('new game state received', Game.getGameJson(savedGame));
 }
 
-Game.returnGameData = function(cb, currGame, playerId){
+Game.returnGameDataWithPlayerColor = function(cb, currGame, playerId){
 	let json = Game.getGameJson(currGame, playerId);
+	json.playerColor = playerId === currGame.white ? "white" : "black";
 	cb(undefined, json);
 }
 

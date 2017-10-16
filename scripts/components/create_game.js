@@ -5,6 +5,36 @@ import {browserHistory} from 'react-router';
 
 
 const CreateGame = React.createClass({
+  componentDidMount(){
+    if (this.hasMounted !== true){
+       this.hasMounted = true
+       this.createTimeQuestion()
+    }
+  },
+  createTimeQuestion(){
+      this.mainEl = document.getElementById('root')
+
+      this.timeQuestionTab = document.createElement('div');
+      this.timeQuestionTab.className = 'time-question-tab'
+      this.timeQuestionTab.innerHTML = '<div class="time-question-container"><span class="time-choices"></span></div>'
+      let timeChoiceBox = this.timeQuestionTab.firstChild.firstChild
+      const MINUTES = [5, 10, 15, 30]
+      timeChoiceBox.innerHTML = `<button class="time-choice">${MINUTES[0]} minutes</button><button class="time-choice">${MINUTES[1]} minutes</button><button class="time-choice">${MINUTES[2]} minutes</button><button class="time-choice">${MINUTES[3]} minutes</button>`
+      let timeChoices = timeChoiceBox.children
+      timeChoices[0].onclick = this.startGame.bind(this, MINUTES[0])
+      timeChoices[1].onclick = this.startGame.bind(this, MINUTES[1])
+      timeChoices[2].onclick = this.startGame.bind(this, MINUTES[2])
+      timeChoices[3].onclick = this.startGame.bind(this, MINUTES[3])
+
+      let direction = document.createElement('span');
+      direction.innerHTML = 'Choose A Play Clock!';
+      direction.className = 'time-direction';
+
+      timeChoiceBox.appendChild(direction);
+
+
+      this.mainEl.appendChild(this.timeQuestionTab);
+  },
   receiveGameStart(json){
     console.log("received game start");
     console.log(json);
@@ -19,17 +49,18 @@ const CreateGame = React.createClass({
   receiveErrGameStart(){
     console.log("err game start")
   },
-  startGame(){
-    gameApi.startGame(this.receiveGameStart.bind(this), this.receiveErrGameStart.bind(this))
+  startGame(minutes){
+    this.timeQuestionTab.style.display = 'none';
+    gameApi.startGame({minutes}, this.receiveGameStart.bind(this), this.receiveErrGameStart.bind(this))
   },
   render(){
       return (
-        <div  className="start-game-modal">
-          <a onClick={this.startGame}>Start Game</a>
+        <div  className="start-game-modal">          
         </div>
       )
   }
 })
+//<a onClick={this.startGame}>Start Game</a>
 //add spin wheel for game start
 
 module.exports = CreateGame;

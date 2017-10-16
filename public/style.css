@@ -191,13 +191,13 @@ body{
   font-size: 32px;
 }
 
-.just-moved-clock{
+.opponent-clock{
   position: absolute;
   top: 10px;
   left: 10px;
 }
 
-.to-move-clock{
+.first-person-clock{
   position: absolute;
   top: 533px;
   right: 10px;

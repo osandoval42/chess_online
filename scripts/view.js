@@ -13,58 +13,80 @@ import {browserHistory} from 'react-router';
 
 
 
-const View = function(mainEl){
+const View = function(mainEl, firstTime, firstPersonClockDisplay, opponentClockDisplay){
   this.mainEl = mainEl;
   this.createWinMessage()
   this.createPawnConversionTab()
-  this.createTimeQuestion()
-  this.createClockDisplays()
   this.chessBoardDisplay = mainEl.querySelector('.chess-board');
+  this.playerColor = ongoingGameStore.gameData().playerColor;
+  console.log(`player color on client is ${this.playerColor}`);
+
+  if (firstTime === true){
+    console.log("ran first time")
+    this.createClockDisplays();
+  } else {
+    console.log("ran not first time")
+    this.firstPersonClockDisplay = firstPersonClockDisplay;
+    this.opponentClockDisplay = opponentClockDisplay;
+  }
 
   this.syncBoardToGameState();
   this.setUp()
-  this.squareClickDisabled = true //how to disattach this from being dependent on clock setup
 };
 
 View.prototype.syncBoardToGameState = function(){
+  let gameData = ongoingGameStore.gameData()
   this.board = Board.initializeBoard();
-  this.toMove = ongoingGameStore.gameData().toMove;
+  this.toMove = gameData.toMove;
   this.startPos = null;
+  this.squareClickDisabled = (gameData.gameHasStarted === true) ? false : true;
+  this.setUpClock();
 }
 
-
+//LEFT off need to create clock displays
  View.prototype.createClockDisplays = function(){
-  this.blackClockDisplay = document.createElement('div');
-  this.blackClockDisplay.className = 'just-moved-clock clock-display'
+  this.opponentClockDisplay = document.createElement('div');
+  this.opponentClockDisplay.className = 'opponent-clock clock-display'
 
-  this.whiteClockDisplay = document.createElement('div');
-  this.whiteClockDisplay.className = 'to-move-clock clock-display'
+  this.firstPersonClockDisplay = document.createElement('div');
+  this.firstPersonClockDisplay.className = 'first-person-clock clock-display'
 
-  this.mainEl.appendChild(this.whiteClockDisplay);
-  this.mainEl.appendChild(this.blackClockDisplay);
+  this.mainEl.appendChild(this.firstPersonClockDisplay);
+  this.mainEl.appendChild(this.opponentClockDisplay);
 }
 
- View.prototype.createTimeQuestion = function(){
-  this.timeQuestionTab = document.createElement('div');
-  this.timeQuestionTab.className = 'time-question-tab'
-  this.timeQuestionTab.innerHTML = '<div class="time-question-container"><span class="time-choices"></span></div>'
-  let timeChoiceBox = this.timeQuestionTab.firstChild.firstChild
-  const MINUTES = [5, 10, 15, 30]
-  timeChoiceBox.innerHTML = `<button class="time-choice">${MINUTES[0]} minutes</button><button class="time-choice">${MINUTES[1]} minutes</button><button class="time-choice">${MINUTES[2]} minutes</button><button class="time-choice">${MINUTES[3]} minutes</button>`
-  let timeChoices = timeChoiceBox.children
-  timeChoices[0].onclick = this.setUpClock.bind(this, MINUTES[0])
-  timeChoices[1].onclick = this.setUpClock.bind(this, MINUTES[1])
-  timeChoices[2].onclick = this.setUpClock.bind(this, MINUTES[2])
-  timeChoices[3].onclick = this.setUpClock.bind(this, MINUTES[3])
+View.prototype.setUpClock = function(){
+  // this.squareClickDisabled = false;
+  //vuelva
+  // this.timeQuestionTab.style.display = 'none';
+  let gameData = ongoingGameStore.gameData()
+  let firstPersonMilliSecondsLeft;
+  let opponentMilliSecondsLeft;
+  if (gameData.toMove === gameData.playerColor){
+    firstPersonMilliSecondsLeft = gameData.playerToMoveMilliSecondsLeft
+    opponentMilliSecondsLeft = gameData.playerNotToMoveMilliSecondsLeft
+  } else {
+    firstPersonMilliSecondsLeft = gameData.playerNotToMoveMilliSecondsLeft;
+    opponentMilliSecondsLeft = gameData.playerToMoveMilliSecondsLeft;
+  }
+  if (this.firstPersonClock !== undefined){
+    this.firstPersonClock.stop();
+    this.opponentClock.stop();
+  }
+  let opponentColor = gameData.playerColor === "white" ? "black" : "white"
+  this.firstPersonClock = new Clock(firstPersonMilliSecondsLeft, this.showWinMessage.bind(this, opponentColor), this.firstPersonClockDisplay);
+  this.opponentClock = new Clock(opponentMilliSecondsLeft, this.showWinMessage.bind(this, gameData.playerColor), this.opponentClockDisplay);
 
-  let direction = document.createElement('span');
-  direction.innerHTML = 'Choose A Play Clock!';
-  direction.className = 'time-direction';
+  this.startClock(gameData);
+}
 
-  timeChoiceBox.appendChild(direction);
-
-
-  this.mainEl.appendChild(this.timeQuestionTab);
+View.prototype.startClock = function(gameData){
+  if (gameData.gameHasStarted){
+    console.log("start clock hit")
+    console.log(JSON.stringify(gameData));
+    let clockMoving = (gameData.toMove === gameData.playerColor) ? this.firstPersonClock : this.opponentClock;
+    clockMoving.start();
+  }
 }
 
  View.prototype.createPawnConversionTab = function(){
@@ -97,18 +119,17 @@ View.prototype.syncBoardToGameState = function(){
   this.setUpBoard(this);
 }
 
-View.prototype.setUpClock = function(minutes){
-  this.squareClickDisabled = false;
-  this.timeQuestionTab.style.display = 'none';
-  this.whiteClock = new Clock(minutes, this.renderWon.bind(this), this.whiteClockDisplay);
-  this.blackClock = new Clock(minutes, this.renderWon.bind(this), this.blackClockDisplay);
 
-  this.whiteClock.start();
-}
+
+
+
+//  View.prototype.createTimeQuestion = function(){
+
+// }
 
 View.prototype.switchClockRunning = function(){
-  this.whiteClock.toggleRunning();
-  this.blackClock.toggleRunning();
+  this.firstPersonClock.toggleRunning();
+  this.opponentClock.toggleRunning();
 }
 
  View.prototype.setUpBoard = function(){
@@ -166,7 +187,7 @@ View.prototype.squareClick = function(pos){
       if (moveResult === MoveResults.CHECKMATE){
         this.postMoveToBackend(pos);
         this.renderMoveResult()
-        this.renderWon();
+        this.renderWonFromFrontEndMove();
       }
       return moveResult;
     }
@@ -182,7 +203,7 @@ View.prototype.renderMoveResult = function(){
   this.render();
   this.changeToMove();
   // this.flipBoard()
-  this.flipClocks()
+  // this.flipClocks()
 }
 
 View.prototype.demandPawnPromotion = function(pos){
@@ -212,7 +233,7 @@ View.prototype.makePromotion = function(pos, chosenPiece){
   this.pawnConversionTab.style.display = 'none';
   this.renderMoveResult();
   if (moveResult === MoveResults.CHECKMATE){
-    return this.renderWon();
+    return this.renderWonFromFrontEndMove();
   }
 
   this.squareClickDisabled = false;
@@ -220,8 +241,8 @@ View.prototype.makePromotion = function(pos, chosenPiece){
 
 View.prototype.selectPiece = function(pos){
   let piece = this.board.getPiece(pos)
-  if (piece.color !== this.toMove){
-    console.log(`invalid select with piece.color:${piece.color} and toMove:${this.toMove}`);
+  if (piece.color !== this.toMove || piece.color !== this.playerColor){
+    console.log(`invalid select with piece.color:${piece.color} and toMove:${this.toMove} and playerColor: ${this.playerColor}`);
     return 'invalid selection'
   }
   else{
@@ -266,21 +287,28 @@ View.prototype.changeToMove = function(){
 //     "chess-board black-to-move" : "chess-board"
 // }
 
-View.prototype.flipClocks = function(){
-  this.whiteClockDisplay.className = this.whiteClockDisplay.className === "to-move-clock clock-display" ?
-    "just-moved-clock clock-display"  : "to-move-clock clock-display"
-  this.blackClockDisplay.className = this.blackClockDisplay.className === "to-move-clock clock-display" ?
-    "just-moved-clock clock-display"  : "to-move-clock clock-display"
-}
+// View.prototype.flipClocks = function(){
+//   this.firstPersonClockDisplay.className = this.firstPersonClockDisplay.className === "to-move-clock clock-display" ?
+//     "just-moved-clock clock-display"  : "to-move-clock clock-display"
+//   this.opponentClockDisplay.className = this.opponentClockDisplay.className === "to-move-clock clock-display" ?
+//     "just-moved-clock clock-display"  : "to-move-clock clock-display"
+// }
 
-View.prototype.renderWon = function(){
+View.prototype.renderWonFromFrontEndMove = function(){
   this.changeToMove();
   let winner = this.toMove;
-  let message = `${winner} WINS!`
-  this.winMessageContent.innerHTML = message;
-  this.winMessage.style.display = 'block';
-  this.squareClickDisabled = true;
+  this.showWinMessage(winner);
 }
+
+View.prototype.showWinMessage = function(winner){
+    this.firstPersonClock.stop()
+    this.opponentClock.stop()
+    let message = `${winner.toUpperCase()} WINS!`
+    this.winMessageContent.innerHTML = message;
+    this.winMessage.style.display = 'block';
+    this.squareClickDisabled = true;
+}
+
 
 
 module.exports = View;

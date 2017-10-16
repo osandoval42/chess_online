@@ -28,7 +28,13 @@ OngoingGameStore.addBoard = function(boardJSON){
 OngoingGameStore.reflectChangedBoard = function(payload){
 	//how to reflect move confirmation data
   //how to use merge lodash
-	_onGoingGameData = payload.gameData
+	_onGoingGameData
+  let keys = Object.keys(payload.gameData)
+  for (let i = 0; i < keys.length; i++){
+    let prop = keys[i];
+    _onGoingGameData[prop] = payload.gameData[prop];
+  }
+  
 	OngoingGameStore.__emitChange();
 }
 
