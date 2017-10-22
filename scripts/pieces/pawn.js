@@ -2,13 +2,13 @@ const ChessUnicode = require('../constants/pieces_unicode');
 const Colors = require('../constants/colors');
 const Piece = require('./piece');
 
-const Pawn = function(color, pos, board){
+const Pawn = function(color, pos, board, hasMoved = false){
   Piece.call(this);
   this.color = color;
   this.enpassantOption = null;
   this.pos = pos;
   this.board = board
-  this.hasMoved = false;
+  this.hasMoved = hasMoved;
   this.firstMoveDelta = {row: 0, col: 0};
   this.delta = {row: 0, col: 0}
   this.killDeltas = [
@@ -40,9 +40,9 @@ Pawn.prototype.toString = function(){
   if (this.enpassantOption){
     // console.log(`enpassantOption is ${this.enpassantOption}`);
     let enpassantMove = this.enpassantOption.move;
-    res += `p${enpassantMove.row}${enpassantMove.col}`;
+    res += `p${this.hasMovedChar()}${enpassantMove.row}${enpassantMove.col}`;
   } else {
-    res += 'P';
+    res += `P${this.hasMovedChar()}`;
   }
 
   res += `\"`

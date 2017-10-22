@@ -3,12 +3,12 @@ const Colors = require('../constants/colors');
 const Deltas = require('../constants/deltas');
 const Piece = require('./piece');
 
-const Rook = function(color, pos, board){
+const Rook = function(color, pos, board, hasMoved = false){
   Piece.call(this);
   this.color = color;
   this.pos = pos;
   this.board = board;
-  this.hasMoved = false;
+  this.hasMoved = hasMoved;
   setUnicode.call(this);
   this.deltas = Deltas.NOTDIAGONALS;
 };
@@ -20,7 +20,7 @@ Rook.prototype.moves = Deltas.slidingMoves;
 Rook.prototype.checkDirection = Deltas.checkDirection;
 
 Rook.prototype.toString = function(){
-  return `\"${this.colorString()}R\"`
+  return `\"${this.colorString()}R${this.hasMovedChar()}\"`
 }
 
 function setUnicode(){

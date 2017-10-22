@@ -11,6 +11,10 @@ const Piece = function(){
 
 }
 
+Piece.prototype.hasMovedChar = function(){
+	return (this.hasMoved === true) ? 't' : 'f';
+}
+
 Piece.prototype.colorString = function(){	
 	return this.color === Colors.BLACK ? "B" : "W";
 }

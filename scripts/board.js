@@ -120,8 +120,12 @@ Board.stringToPiece = function(str, pos, board){
     case "R": res = new Rook(color, pos, board); break;
     default: throw `invalid piece str with ${str}`;
   }
+  if (pieceLetter === 'p' || pieceLetter === 'P' || 
+    pieceLetter === 'K' || pieceLetter === 'R'){
+    res.hasMoved = (str[2] === 't') ? true : false
+  }
   if (pieceLetter === 'p'){
-    res.enpassantOption = {move: {row: Number(str[2]), col: Number(str[3])}}
+    res.enpassantOption = {move: {row: Number(str[3]), col: Number(str[4])}}
   }
   return res;
 }
@@ -183,7 +187,7 @@ Board.prototype.kingSideCastle = function(king){
   let kingRow = king.pos.row
 
   let rook = this.getPiece({row: kingRow, col: 7});
-  if (rook.hasMoved || king.hasMoved){
+  if (rook.constructor !== Rook || rook.hasMoved || king.hasMoved){
     return MoveResults.FAILURE;
   }
   let bishopSquare = this.getPiece({row: kingRow, col: 5})
@@ -212,7 +216,7 @@ Board.prototype.kingSideCastle = function(king){
 Board.prototype.queenSideCastle = function(king){
   let kingRow = king.pos.row;
   let rook = this.getPiece({row: kingRow, col: 0});
-  if (rook.hasMoved || king.hasMoved){
+  if (rook.constructor !== Rook || rook.hasMoved || king.hasMoved){
     return MoveResults.FAILURE;
   }
 

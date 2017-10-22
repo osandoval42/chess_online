@@ -3,12 +3,12 @@ const Colors = require('../constants/colors');
 const Deltas = require('../constants/deltas');
 const Piece = require('./piece')
 
-const King = function(color, pos, board){
+const King = function(color, pos, board, hasMoved = false){
   Piece.call(this);
   this.color = color;
   this.pos = pos;
   this.board = board;
-  this.hasMoved = false;
+  this.hasMoved = hasMoved;
   setUnicode.call(this)
   this.stepDeltas = [
     {row: 1, col:-1},
@@ -26,7 +26,7 @@ King.prototype = Object.create(Piece.prototype);
 King.prototype.constructor = King
 
 King.prototype.toString = function(){
-  return `\"${this.colorString()}K\"`
+  return `\"${this.colorString()}K${this.hasMovedChar()}\"`
 }
 
 King.prototype.moves = Deltas.steppingMoves;

@@ -66,7 +66,7 @@ Game.getNewBoard = function(origBoardJSON, newMoveData){
 		} else if (moveResult === MoveResults.CHECKMATE){
 			return {boardJSON: board.toJson(), checkmate: true}
 		} else if (moveResult !== MoveResults.FAILURE){
-			moveResult = this.board.makePromotion(moveResult, chosenPiece);
+			moveResult = board.makePromotion(moveResult, newMoveData.promotionPiece);
 		} else {
 			return undefined;
 		}
@@ -188,13 +188,28 @@ Game.createGame = function(playerId, minutes, cb){
 	}
 	newGame.save((err, savedGame) => {
 		if (err) {return cb(err);}
-		let group = io.of(`/game-${savedGame['_id']}`)
+		let savedGameId = savedGame['_id']
+		let group = io.of(`/game-${savedGameId}`)
 		group.on('connection', function(socket){
-  			console.log(`a user created group ${savedGame['_id']}`);
+  			console.log(`a user joined group ${savedGameId}`);
+  			Game.emitGameDataOnNewConnection(savedGameId)
+  		})
+  		group.on('reconnect', () => {
+  			console.log('a user reconnected');
+  			Game.emitGameDataOnNewConnection(savedGameId)
+
   		})
 
 		Game.returnGameDataWithPlayerColor(cb, savedGame, playerId);
 	})
+}
+
+Game.emitGameDataOnNewConnection = function(savedGameId){
+		Game.findById(savedGameId, (err, currGame) => {
+			if (err){return console.error(`error in reconnect ${err}`)}
+
+			Game.emitNewGameState(currGame);
+		})
 }
 
 Game.joinGame = function(playerId, gameId, cb){
