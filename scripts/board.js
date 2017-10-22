@@ -109,15 +109,21 @@ Board.stringToPiece = function(str, pos, board){
     color = colorLetter === "B" ? COLORS.BLACK : COLORS.WHITE;
   }
   let pieceLetter = str[1];
+  let res;
   switch (pieceLetter){
-    case "Q": return new Queen(color, pos, board);
-    case "N": return new Knight(color, pos, board);
-    case "K": return new King(color, pos, board);
-    case "B": return new Bishop(color, pos, board);
-    case "P": return new Pawn(color, pos, board);
-    case "R": return new Rook(color, pos, board);
+    case "Q": res = new Queen(color, pos, board); break;
+    case "N": res = new Knight(color, pos, board); break;
+    case "K": res = new King(color, pos, board); break;
+    case "B": res = new Bishop(color, pos, board); break;
+    case "P": res = new Pawn(color, pos, board); break;
+    case "p": res = new Pawn(color, pos, board); break;
+    case "R": res = new Rook(color, pos, board); break;
     default: throw `invalid piece str with ${str}`;
   }
+  if (pieceLetter === 'p'){
+    res.enpassantOption = {move: {row: Number(str[2]), col: Number(str[3])}}
+  }
+  return res;
 }
 
 Board.prototype.flattenedGrid = function(){
@@ -262,8 +268,9 @@ Board.prototype.tryEnpassant = function(pawn, endCoords){
   }
 
   if (HelperMethods.arePositionsEqual(endCoords, pawn.enpassantOption.move)){
-    let pawnTaken = pawn.enpassantOption.targetPawn
-    let pawnTakenPos = pawnTaken.pos;
+    let pawnTakenPos = {row: endCoords.row, col: endCoords.col}
+    pawnTakenPos.row += (pawn.color === COLORS.WHITE ? 1 : -1);
+
     this.grid[pawnTakenPos.row][pawnTakenPos.col] = new NullPiece(pawnTakenPos)
 
     return this.actualMove(pawn.pos, endCoords);

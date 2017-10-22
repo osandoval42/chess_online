@@ -36,7 +36,17 @@ Pawn.prototype = Object.create(Piece.prototype);
 Pawn.prototype.constructor = Pawn
 
 Pawn.prototype.toString = function(){
-  return `\"${this.colorString()}P\"`
+  let res = `\"${this.colorString()}`
+  if (this.enpassantOption){
+    // console.log(`enpassantOption is ${this.enpassantOption}`);
+    let enpassantMove = this.enpassantOption.move;
+    res += `p${enpassantMove.row}${enpassantMove.col}`;
+  } else {
+    res += 'P';
+  }
+
+  res += `\"`
+  return res 
 }
 
 Pawn.prototype.moves = function(){
