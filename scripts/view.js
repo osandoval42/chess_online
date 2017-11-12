@@ -14,6 +14,7 @@ import {browserHistory} from 'react-router';
 
 
 const View = function(mainEl, firstTime, firstPersonClockDisplay, opponentClockDisplay){
+  this.boardLIs = [];
   this.mainEl = mainEl;
   this.createWinMessage()
   this.createPawnConversionTab()
@@ -30,17 +31,56 @@ const View = function(mainEl, firstTime, firstPersonClockDisplay, opponentClockD
     this.opponentClockDisplay = opponentClockDisplay;
   }
 
-  this.syncBoardToGameState();
+  this.secondToLastMove = undefined;
+  this.syncBoardToGameState(true);
   this.setUp()
 };
 
-View.prototype.syncBoardToGameState = function(){
+View.prototype.colorLastMoved = function(){
+  if (this.secondToLastMove !== undefined){
+    let moveToErase1 = this.secondToLastMove.from;
+    let moveToErase2 = this.secondToLastMove.to;
+    let oldSquare1 = this.boardLIs[moveToErase1.row][moveToErase1.col]
+    let oldSquare2 = this.boardLIs[moveToErase2.row][moveToErase2.col]
+    oldSquare1.className = ((moveToErase1.row + moveToErase1.col) % 2 === 0) ? 'white' : 'black';
+    oldSquare2.className = ((moveToErase2.row + moveToErase2.col) % 2 === 0) ? 'white' : 'black';
+  }
+  let gameData = ongoingGameStore.gameData();
+  let lastMove = gameData.lastMove;
+  if (lastMove !== undefined){
+    let fromToStrs = lastMove.split(':');
+    console.log(`fromToStrs: ${fromToStrs}`)
+    let fromTo = fromToStrs.map((moveStr) => {
+      let rowColStr = moveStr.split(', ');
+      console.log(`rowColStr: ${rowColStr}`)
+      let rowCol = rowColStr.map((str) => {return Number(str)});
+      console.log(`rowCol: ${rowCol}`)
+      return {row: rowCol[0], col: rowCol[1]};
+    })
+
+    console.log(`fromTo: ${fromTo}`)
+    let moveToColor = {from: fromTo[0], to: fromTo[1]};
+    let newSquare1 = this.boardLIs[moveToColor.from.row][moveToColor.from.col]
+    let newSquare2 = this.boardLIs[moveToColor.to.row][moveToColor.to.col]
+    newSquare1.className = ((moveToColor.from.row + moveToColor.from.col) % 2 === 0) ? 'white' : 'black';
+    newSquare2.className = ((moveToColor.to.row + moveToColor.to.col) % 2 === 0) ? 'white' : 'black';
+    newSquare1.className += " prev-move"
+    newSquare2.className += " prev-move"
+
+    this.secondToLastMove = moveToColor
+  }
+}
+
+View.prototype.syncBoardToGameState = function(isInitializingCall){
   let gameData = ongoingGameStore.gameData()
   this.board = Board.initializeBoard();
   this.toMove = gameData.toMove;
   this.startPos = null;
   this.squareClickDisabled = (gameData.gameHasStarted === true) ? false : true;
   this.setUpClock();
+  if (!isInitializingCall){
+    this.colorLastMoved();
+  }
 }
 
 //LEFT off need to create clock displays
@@ -117,6 +157,7 @@ View.prototype.startClock = function(gameData){
 
  View.prototype.setUp = function(){
   this.setUpBoard(this);
+  this.colorLastMoved();
 }
 
 
@@ -135,9 +176,11 @@ View.prototype.switchClockRunning = function(){
  View.prototype.setUpBoard = function(){
   let html = '';
   for (var i = 0; i < 8; i++){
+    this.boardLIs.push([])
     for (var j = 0; j < 8; j++){
       let square = document.createElement('li');
       square.addEventListener('click', this.squareClick.bind(this, {row: i, col: j}));
+      this.boardLIs[i].push(square);
 
       if((i + j) % 2 === 0){
         square.className = 'white';

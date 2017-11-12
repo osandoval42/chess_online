@@ -202,3 +202,11 @@ body{
   top: 533px;
   right: 10px;
 }
+
+.prev-move{
+  background-color: lightslategrey;
+}
+
+.white-piece{
+  color: green;
+}

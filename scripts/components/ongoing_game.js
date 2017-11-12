@@ -17,7 +17,7 @@ const OngoingGame = React.createClass({
         //(how to to prevent this entering unless we just hit create game)
         this.setupSocket(gameData);
         this.startGameRender();
-        this.listenerId = Store.addListener(this.renderGame);
+        this.listenerId = Store.addListener(this.renderGame);        
       }    
     }
 
@@ -73,7 +73,7 @@ const OngoingGame = React.createClass({
   },
   componentWillUnmount(){
     Store.destroyGameState()
-    Store.removeListener(this.listenerId);
+    this.listenerId.remove();
   },
   render(){
       return (

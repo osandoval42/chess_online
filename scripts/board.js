@@ -405,7 +405,8 @@ Board.prototype.renderPieces = function(squares){
   this.grid.forEach(function(row, rowIdx){
     row.forEach(function(piece, colIdx){
       let squareIdx = 8 * rowIdx + colIdx;
-      squares[squareIdx].innerHTML = piece.symbol;
+      squares[squareIdx].innerHTML = piece.symbol;    
+      squares[squareIdx].className = (piece.color === COLORS.WHITE) ? "white-piece" : ""
     });
   });
 };

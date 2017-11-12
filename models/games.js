@@ -38,6 +38,9 @@ const GameSchema = mongoose.Schema({ //REVISE img data
 	},
 	board: {
 		type: String,
+	},
+	lastMove: {
+		type: String,
 	}
 }, {timestamps: true})
 
@@ -84,6 +87,7 @@ Game.postMove = function(playerId, data, cb){
 
 	Game.numberfyPosition(data.startPos);
 	Game.numberfyPosition(data.endPos);
+	let lastMoveStr = `${data.startPos.row}, ${data.startPos.col}:${data.endPos.row}, ${data.endPos.col}`
 	
 	let currDateInMilliSeconds = new Date().getTime();
 	Game.findById(mongoose.Types.ObjectId(data.gameId), (err, currGame) => {
@@ -96,6 +100,7 @@ Game.postMove = function(playerId, data, cb){
 		let milliSecondsTakenToMove = currDateInMilliSeconds - timeMoveWasGranted;
 		let playerJustMovedMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft - milliSecondsTakenToMove;
 
+
 		if (playerJustMovedMilliSecondsLeft > 0){
 			let boardObj = Game.getNewBoard(currGame.board, data);
 			
@@ -107,6 +112,7 @@ Game.postMove = function(playerId, data, cb){
 				currGame.board = boardObj.boardJSON;
 				currGame.won = currGame.toMove;
 				currGame.gameIsOver = true;
+				currGame.lastMove = lastMoveStr
 				return currGame.save((err, savedGame) => {
 					if (err || savedGame === null || savedGame === undefined){console.error(err); return cb(err);}
 						let boardJSON = savedGame.board;
@@ -136,6 +142,7 @@ Game.postMove = function(playerId, data, cb){
 				whiteMilliSecondsLeft = currGame.playerToMoveMilliSecondsLeft;
 				blackMilliSecondsLeft = currGame.playerNotToMoveMilliSecondsLeft;
 			}
+			currGame.lastMove = lastMoveStr
 			currGame.save((err, savedGame) => {
 				if (err){console.error(err); return cb(err);}
 				let boardJSON = savedGame.board;
@@ -146,7 +153,7 @@ Game.postMove = function(playerId, data, cb){
 			})
 		} else {
 			currGame.gameIsOver = true;
-			currGame.playerToMoveMilliSecondsLeft = 0;
+			currGame.playerToMoveMilliSecondsLeft = 0;			
 			currGame.save((err, savedGame) => {
 				if (err){console.error(err); return cb(err);}
 
@@ -261,6 +268,7 @@ Game.getGameJson = function(currGame, playerId){
 	}
 	
 	let json = {
+		lastMove: currGame.lastMove,
 		gameId: currGame._id,
 		boardJSON: currGame.board,
 		toMove: currGame.toMove,
@@ -270,7 +278,7 @@ Game.getGameJson = function(currGame, playerId){
 		playerNotToMoveMilliSecondsLeft: currGame.playerNotToMoveMilliSecondsLeft,
 		whiteMilliSecondsLeft,
 		blackMilliSecondsLeft,
-		won: currGame.won,		
+		won: currGame.won		
 	}
 	//playerColor: (currGame.white === playerId ? ("white") : ("black"))
 	return json
